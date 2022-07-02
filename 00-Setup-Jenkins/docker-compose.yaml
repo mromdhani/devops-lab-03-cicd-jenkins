@@ -1,0 +1,14 @@
+version: '3'
+services:
+  jenkins:
+    image: jenkinsci/blueocean
+    environment:
+      #### WINDOWS ONLY RIQUIRED TO ACCESS TO Docker Daem Socket####
+      - DOCKER_HOST=tcp://host.docker.internal:2375
+    user: root
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+      - "50000:50000"
+    volumes:
+      - ./jenkins_data:/var/jenkins_home

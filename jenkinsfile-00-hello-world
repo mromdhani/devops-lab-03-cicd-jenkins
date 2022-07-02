@@ -1,0 +1,48 @@
+pipeline {
+    agent any   
+    stages {
+         // Clone from Git
+        stage("Clone App from Git"){
+            steps{
+                echo "====++++  Clone App from Git ++++===="
+             }          
+        }        
+         // Build and Quality Tests
+        stage("Quality Tests"){
+            steps{
+                echo "====++++  Performing Quality Checks ++++====" 
+            }
+        } 
+        // Unit Tests
+        stage("Unit Tests"){
+            steps{
+                echo "====++++  Performing Unit Tests ++++===="  
+           }           		
+        } 
+        // Security Checks
+        stage("Security Checks- Find Sec Bugs"){
+            steps{
+                echo "====++++  Performing Security Checks On Code  ++++===="     
+            }           				
+        } 				
+        stage("Security Checks- Dependencies check"){
+            steps{
+                echo "====++++  Performing Security Checks /Dependencies ++++===="  
+            }           				
+        } 
+        
+        //Build Docker Image
+        stage("Build Docker Image"){
+            steps{
+                echo "====++++  Building Docker Image ++++===="               
+            }          
+        }
+     
+         //Push Docker Image to Nexus Docker Registry
+        stage("Push Image to Nexus"){
+            steps{
+                echo "====++++  Pushing Docker Image ++++===="                       
+            }      
+        }   			
+    }	
+}
