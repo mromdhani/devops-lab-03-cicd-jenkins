@@ -1,0 +1,112 @@
+pipeline {
+    agent any
+    tools {
+        maven "my-maven"       
+    }
+    environment {
+        NAME = "bookstorebackend"
+        VERSION = "${env.BUILD_ID}"
+        IMAGE = "${NAME}:${VERSION}"
+    }
+    stages {
+         // Clone from Git
+        stage("Clone App from Git"){
+            steps{
+                echo "====++++  Clone App from Git ++++===="
+                git branch:"04-Build-Image", url: "https://github.com/mromdhani/devops-lab-03-cicd-jenkins.git"
+            }          
+        }
+         // Build and Quality Tests
+        stage("Quality Tests"){
+            steps{
+                echo "====++++  Performing Quality Checks ++++===="  
+
+                dir("${WORKSPACE}/04-Build-Image/bookstore-fullstack/bookstore-backend") {
+                  sh "mvn clean compile checkstyle:checkstyle pmd:pmd pmd:cpd"
+                }               
+            }
+            // Reporting for Quality Tests (using Warnings Next Generation Plugin)
+            post {
+                always {
+                    recordIssues(
+                          enabledForFailure: true, aggregatingResults: true,
+                          tools: [
+                              java(),
+                              checkStyle(pattern: '**/target/checkstyle-result.xml', reportEncoding: 'UTF-8'),
+                              pmdParser(pattern: '**/target/pmd.xml'),
+                                                          
+                        ]
+                    )
+                }       
+            }			
+        } 
+        // Unit Tests
+        stage("Unit Tests"){
+            steps{
+                echo "====++++  Performing Unit Tests ++++===="  
+
+                dir("${WORKSPACE}/04-Build-Image/bookstore-fullstack/bookstore-backend") {
+                  sh "mvn clean test"
+                }               
+            }
+            // Reporting for unit Tests
+            post {
+                always {
+                     junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: false 
+                }       
+            }			
+        } 
+        // Security Checks
+        stage("Security Checks- Find Sec Bugs"){
+            steps{
+                echo "====++++  Performing Security Checks On Code  ++++===="  
+
+                dir("${WORKSPACE}/04-Build-Image/bookstore-fullstack/bookstore-backend") {
+                  sh "mvn clean compile spotbugs:spotbugs"
+                }   
+            }
+             // Reporting for Security Checks
+            post {
+                always {
+                    recordIssues(
+                          enabledForFailure: true, aggregatingResults: true,
+                          tools: [
+                              spotBugs(pattern: '**/target/spotbugsXml.xml')                                                           
+                        ]
+                    )
+                }       
+            }					
+        } 				
+        stage("Security Checks- Dependencies check"){
+            steps{
+                echo "====++++  Performing Security Checks /Dependencies ++++===="  
+
+                dir("${WORKSPACE}/04-Build-Image/bookstore-fullstack/bookstore-backend") {
+                    sh "mvn clean org.owasp:dependency-check-maven:7.1.1:check -Dformat=XML"
+                    
+                }   
+            }
+            // Reporting for Security Checks
+            post {
+                always {
+                     dir("${WORKSPACE}/04-Build-Image/bookstore-fullstack/bookstore-backend") {
+                        dependencyCheckPublisher pattern: '**/target/dependency-check-report.xml' 
+                       
+                     }
+                }       
+            }					
+        } 
+        //Build Docker Image
+        stage("Build Docker Image"){
+            steps{
+                echo "====++++  Building Docker Image ++++===="
+                dir("${WORKSPACE}/04-Build-Image/bookstore-fullstack/bookstore-backend") {
+                  sh "docker build -t ${NAME} ."
+                  sh "docker tag ${NAME}:latest ${NAME}:${VERSION}"
+                }   
+                
+            }          
+        }
+   			
+    }	
+}
